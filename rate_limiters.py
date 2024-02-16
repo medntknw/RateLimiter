@@ -53,7 +53,7 @@ def rate_limit_exceeded(ip_address, size, threshold):
             del WINDOWS[ip_address]
     return False
 
-def fixed_window_counter_rate_limit(size=60, threshold=60):
+def sliding_window_log_rate_limit(size=60, threshold=60):
     def decorator(func):
         def wrapper(*args, **kwargs):
             ip_address = request.remote_addr
