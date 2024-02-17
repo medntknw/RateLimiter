@@ -1,10 +1,10 @@
+from collections import defaultdict
 from flask import request
 from datetime import datetime, timedelta
 import time
 
 # In real world scenario this bucket will be in a distributed cache
 BUCKET = dict()
-
 def refill_bucket(ip_address, capacity, refill_ts):
     current_ts = int(time.time())
     if ip_address not in BUCKET:
@@ -39,24 +39,19 @@ def token_bucket_rate_limit(capacity=10, refill_ts=1):
     return decorator
 
 WINDOWS = {}
-
-def rate_limit_exceeded(ip_address, size, threshold):
-    if ip_address in WINDOWS:
-        first_request_time = WINDOWS[ip_address][0]
-        # Check if the window duration has elapsed since the first request
-        if datetime.now() - first_request_time < timedelta(seconds=size):
-            # If number of requests exceeds the limit, return True
-            if len(WINDOWS[ip_address]) >= threshold:
-                return True
-        else:
-            # If window duration has elapsed, reset the request counts for the IP address
-            del WINDOWS[ip_address]
-    return False
-
 def sliding_window_log_rate_limit(size=60, threshold=60):
     def decorator(func):
         def wrapper(*args, **kwargs):
             ip_address = request.remote_addr
+            def rate_limit_exceeded(ip_address, size, threshold):
+                if ip_address in WINDOWS:
+                    first_request_time = WINDOWS[ip_address][0]
+                    if datetime.now() - first_request_time < timedelta(seconds=size):
+                        if len(WINDOWS[ip_address]) >= threshold:
+                            return True
+                    else:
+                        del WINDOWS[ip_address]
+                return False
             if rate_limit_exceeded(ip_address, size, threshold):
                 return 'You have been rate limited!', 429
             else:
@@ -67,4 +62,22 @@ def sliding_window_log_rate_limit(size=60, threshold=60):
             return func(*args, **kwargs)
         return wrapper
     return decorator
-    
+
+
+FIXED_WINDOW_COUNTER = defaultdict(int)
+def fixed_window_counter_rate_limit(size=60, threshold=60):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            ip_address = request.remote_addr
+            def rate_limit_exceeded(ip_address, size, threshold):
+                current_ts = int(time.time())
+                current_window = current_ts//size
+                key = f'{ip_address}:{current_window}'
+                if FIXED_WINDOW_COUNTER[key] >= threshold:
+                    return True
+                FIXED_WINDOW_COUNTER[key] += 1
+            if rate_limit_exceeded(ip_address, size, threshold):
+                return 'You have been rate limited!', 429
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
