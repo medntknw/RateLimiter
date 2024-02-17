@@ -1,22 +1,15 @@
 from datetime import datetime, timedelta
+from collections import defaultdict
 
-WINDOWS = dict()
+WINDOWS = defaultdict(list)
 
-def rate_limit_exceeded(identifier, size, threshold):
+def sliding_window_logs_rate_limited(identifier, window_size=60, window_requests_threshold=60):
     if identifier in WINDOWS:
         first_request_time = WINDOWS[identifier][0]
-        if datetime.now() - first_request_time < timedelta(seconds=size):
-            if len(WINDOWS[identifier]) >= threshold:
+        if datetime.now() - first_request_time < timedelta(seconds=window_size):
+            if len(WINDOWS[identifier]) >= window_requests_threshold:
                 return True
         else:
             del WINDOWS[identifier]
+    WINDOWS[identifier].append(datetime.now())
     return False
-
-def sliding_window_logs_rate_limited(identifier, window_size=60, window_requests_threshold=60):
-    if rate_limit_exceeded(identifier, window_size, window_requests_threshold):
-        return 'You have been rate limited!', 429
-    else:
-        if identifier in WINDOWS:
-            WINDOWS[identifier].append(datetime.now())
-        else:
-            WINDOWS[identifier] = [datetime.now()]
