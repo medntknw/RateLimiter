@@ -1,0 +1,27 @@
+---
+version: '3'
+services:
+  server_1:
+    build: .
+    image: server_1:latest
+    expose:
+      - "5000"
+    ports:
+      - "5001:5000"
+    depends_on:
+      - redis
+  
+  server_2:
+    build: .
+    image: server_1:latest
+    expose:
+      - "5000"
+    ports:
+      - "5002:5000"
+    depends_on:
+      - redis
+  
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"  
