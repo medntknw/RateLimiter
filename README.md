@@ -48,3 +48,14 @@ Example 2: if the limit is 10 requests / min and 10 requests were sent starting 
 1. Memory Limit: Depending on the size of the sliding window and the granularity of the data being logged, the algorithm may require a significant amount of memory to store the logged data points. This can become a limitation, especially when dealing with large-scale data streams
 2. Processing Overhead: As new data points are added to the sliding window and old ones are removed, there is a constant need for processing to maintain the window. This overhead can impact the overall performance of the system, especially if the window size is large or if there are frequent updates to the data.
 
+## Sliding Window Counter
+The Sliding Window Counter algorithm is a hybrid approach that combines the Fixed Window Counter algorithm and Sliding Window Logs algorithm.
+`Current Request rate = Requests in current window + (Requests in the previous window * overlap percentage of the rolling window and previous window)`
+
+**Pros**
+1. Memory efficient.
+2. It smoothes out spikes in the traffic because the rate is based on the average rate of the previous window.
+
+**Cons**
+1. It only works for not-so-strict look back window. It is an approximation of the actual rate because it assumes requests in the previous window are evenly distributed.
+However, this problem may not be as bad as it seems. According to experiments done by Cloudflare, only 0.003% of requests are wrongly allowed or rate limited among 400 million requests.
